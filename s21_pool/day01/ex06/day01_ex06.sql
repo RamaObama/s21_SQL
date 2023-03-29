@@ -18,4 +18,4 @@ FROM ((SELECT person_order.order_date AS action_date, person.name AS person_name
        WHERE person.id = person_visits.person_id)) tmp
 GROUP BY action_date, person_name
 HAVING COUNT(*) >= 2
-ORDER BY action_date ASC, person_name DESC
+ORDER BY action_date ASC, person_name DESC;
