@@ -1,20 +1,20 @@
 -- Вариант № 1 Медленный
 SELECT CASE
-           WHEN person.name IS NULL THEN '-'
-           ELSE person.name
+           WHEN pers.name IS NULL THEN '-'
+           ELSE pers.name
            END AS person_name,
        visit_date,
        CASE
-           WHEN pizzeria.name IS NULL THEN '-'
-           ELSE pizzeria.name
+           WHEN pizza.name IS NULL THEN '-'
+           ELSE pizza.name
            END AS pizzeria_name
-FROM person
+FROM person AS pers
          FULL JOIN (SELECT *
-                    FROM person_visits
-                    WHERE visit_date BETWEEN '2022-01-01' AND '2022-01-03') AS person_visits
-                   ON person_id = person.id
-         FULL JOIN pizzeria
-                   ON pizzeria_id = pizzeria.id
+                    FROM person_visits AS pers_v
+                    WHERE pers_v.visit_date BETWEEN '2022-01-01' AND '2022-01-03') query
+                   ON pers.id = query.person_id
+         FULL JOIN pizzeria AS pizza
+                   ON query.pizzeria_id = pizza.id
 ORDER BY person_name, visit_date, pizzeria_name;
 
 -- Вариант № 2 с COALESCE Быстрый
