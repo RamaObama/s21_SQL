@@ -23,4 +23,4 @@ FROM (SELECT person_id, pizzeria_id, count(person_id) AS orders
       FROM person_order
                JOIN menu m on person_order.menu_id = m.id
       GROUP BY person_id, pizzeria_id
-      ORDER BY 1, 2) AS amount;
+         /* ORDER BY 1, 2 */ ) AS amount;
