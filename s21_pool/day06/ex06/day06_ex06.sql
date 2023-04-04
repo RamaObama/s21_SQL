@@ -4,8 +4,12 @@
 
 CREATE SEQUENCE seq_person_discounts START 1;
 
-SELECT setval('seq_person_discounts', max(id))
-FROM person_discounts;
+-- #1.
+-- SELECT setval('seq_person_discounts', max(id))
+-- FROM person_discounts;
+
+-- #2. amount of rows in person_discounts
+SELECT setval('seq_person_discounts', (SELECT count(*) FROM person_discounts));
 
 ALTER TABLE person_discounts
     ALTER COLUMN id SET default nextval('seq_person_discounts');
