@@ -35,17 +35,15 @@ CREATE TABLE person_audit
 ALTER TABLE person_audit
     ADD CONSTRAINT ch_type_event CHECK ( type_event IN ('I', 'U', 'D'));
 
-
+  -- Вариант №1.
+    -- INSERT INTO person_audit (type_event, row_id, name, age, gender, address)
+    -- VALUES ('I', new."id", new."name", new."age", new."gender", new."address");
+    -- RETURN NULL;
 
 CREATE OR REPLACE FUNCTION fnc_trg_person_insert_audit()
     RETURNS TRIGGER AS
 $trg_person_insert_audit$
 BEGIN
-    -- Вариант №1.
-    -- INSERT INTO person_audit (type_event, row_id, name, age, gender, address)
-    -- VALUES ('I', new."id", new."name", new."age", new."gender", new."address");
-    -- RETURN NULL;
-
     -- Вариант #2.
     IF (TG_OP = 'INSERT') THEN
         INSERT INTO person_audit SELECT now(), 'I', new.*;
