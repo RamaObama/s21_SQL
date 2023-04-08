@@ -95,13 +95,14 @@ AS
 $$
 BEGIN
     RETURN QUERY
-        SELECT DISTINCT p.name AS pizzeria_name
+        SELECT /*DISTINCT*/ p.name AS pizzeria_name
         FROM person_visits pv
-                 JOIN person_order po ON po.person_id = pv.person_id
-                 JOIN menu m ON m.id = po.menu_id AND m.price <= pprice AND m.pizzeria_id = pv.pizzeria_id
+--                  JOIN person_order po ON po.person_id = pv.person_id
+                 JOIN menu m ON /*m.id = po.menu_id AND*/ m.price < pprice AND m.pizzeria_id = pv.pizzeria_id
                  JOIN pizzeria p ON p.id = pv.pizzeria_id
                  JOIN person per ON per.id = pv.person_id AND per.name = pperson
-        WHERE pv.visit_date = pdate;
+        WHERE pv.visit_date = pdate
+        ORDER BY 1 DESC;
 END;
 $$ LANGUAGE plpgsql;
 
