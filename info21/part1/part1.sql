@@ -113,3 +113,63 @@ CREATE TABLE TimeTracking
     State BIGINT             NOT NULL CHECK (State IN (1, 2)),
     FOREIGN KEY (Peer) REFERENCES Peers (Nickname)
 );
+
+/* -------------------------- FUNCTION --------------------------- */
+-- Функция для перевода ников к нижнему регистру
+CREATE OR REPLACE FUNCTION set_lowercase_nickname()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    new.nickname := lower(new.nickname);
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql;
+
+--
+
+CREATE OR REPLACE FUNCTION set_in_transferred_points()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    peer VARCHAR;
+BEGIN
+    IF ((SELECT count(*) FROM Peers) > 1) THEN
+        FOR peer IN (SELECT Nickname FROM Peers)
+            LOOP
+                peer := replace(peer, '(', '');
+                peer := replace(peer, ')', '');
+                IF (peer != new.Nickname AND (SELECT count(*)
+                                              FROM TransferredPoints
+                                              WHERE peer = CheckedPeer) = 0) THEN
+                    INSERT INTO TransferredPoints
+                    VALUES (coalesce((SELECT max(ID) FROM TransferredPoints), 0) + 1, peer, new.Nickname, 0);
+                    INSERT INTO TransferredPoints
+                    VALUES ((SELECT max(ID) FROM TransferredPoints) + 1, new.Nickname, peer, 0);
+                END IF;
+            END LOOP;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+/* -------------------------- TRIGGER ---------------------------- */
+-- Триггер для срабатывания set_lowercase_nickname
+CREATE TRIGGER trg_set_lowercase_nickname
+    BEFORE INSERT OR UPDATE
+    ON Peers
+    FOR EACH ROW
+EXECUTE PROCEDURE set_lowercase_nickname();
+
+CREATE TRIGGER trg_set_in_transferred_points
+    AFTER INSERT
+    ON Peers
+    FOR EACH ROW
+EXECUTE FUNCTION set_in_transferred_points();
+
+/* ---------------------------- DROP ----------------------------- */
+-- set_lowercase_nickname
+DROP FUNCTION IF EXISTS set_lowercase_nickname() CASCADE;
+DROP TRIGGER IF EXISTS trg_set_lowercase_nickname ON Peers CASCADE;
+
+DROP FUNCTION IF EXISTS set_in_transferred_points() CASCADE;
+DROP TRIGGER IF EXISTS trg_set_in_transferred_points ON Peers CASCADE;
