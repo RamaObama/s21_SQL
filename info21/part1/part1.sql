@@ -225,9 +225,9 @@ VALUES ('C2_SimpleBashUtils', NULL, 250),
        ('SQL2_Info21_v1.0', 'SQL1_Bootcamp', 500),
        ('SQL3_RetailAnalitycs_v1.0', 'SQL2_Info21_v1.0', 600);
 
--- Добавление значений в таблицу Checks Часть 2
+-- Добавление значений в таблицу Checks
 INSERT INTO Checks (ID, Peer, Task, Date)
-VALUES (1, 'deltajed', 'C2_SimpleBashUtils', '2022-06-28'),
+VALUES (1, 'deltajed', 'C2_SimpleBashUtils', '2022-06-28'), -- Success start
        (2, 'deltajed', 'C3_s21_string+', '2022-05-25'),
        (3, 'deltajed', 'C4_s21_math', '2022-06-14'),
        (4, 'deltajed', 'C5_s21_decimal', '2022-08-21'),
@@ -250,4 +250,67 @@ VALUES (1, 'deltajed', 'C2_SimpleBashUtils', '2022-06-28'),
        (21, 'mikeleil', 'DO3_LinuxMonitoring_v1.0', '2022-11-28'),
        (22, 'mikeleil', 'DO5_SimpleDocker', '2022-12-16'),
        (23, 'mikeleil', 'DO6_CICD', '2022-12-21'),
-       (24, 'mikeleil', 'SQL1_Bootcamp', '2023-04-10');
+       (24, 'mikeleil', 'SQL1_Bootcamp', '2023-04-10'),
+       -- Fail start
+       (25, 'deltajed', 'C2_SimpleBashUtils', '2022-06-27');
+
+-- Добавление значений в таблицу P2P
+-- TODO: Добавить еще значений для полноты.
+INSERT INTO P2P (id, "Check", CheckingPeer, State, Time)
+VALUES -- Fail
+       (1, 25, 'mikeleil', 'Start', '16:00:00'),
+       (2, 25, 'mikeleil', 'Failure', '17:00:00'),
+
+       (3, 1, 'mikeleil', 'Start', '16:00:00'),
+       (4, 1, 'mikeleil', 'Success', '17:00:00'),
+
+       (5, 2, 'katherib', 'Start', '15:00:00'),
+       (6, 2, 'katherib', 'Success', '16:00:00'),
+
+       (7, 3, 'fernando', 'Start', '15:00:00'),
+       (8, 3, 'fernando', 'Success', '16:00:00');
+
+-- Добавление значений в таблицу Verter
+--  TODO: Добавить все проверки где используется вертер
+INSERT INTO Verter (id, "Check", State, Time)
+VALUES (1, 1, 'Start', '17:01:00'),
+       (2, 1, 'Success', '17:05:00'),
+
+       (3, 2, 'Start', '16:01:00'),
+       (4, 2, 'Success', '17:05:00'),
+
+       (5, 3, 'Start', '15:01:00'),
+       (6, 3, 'Failure', '16:05:00');
+
+-- Добавление значений в таблицу Friends
+INSERT INTO Friends (id, Peer1, Peer2)
+VALUES (1, 'deltajed', 'mikeleil'),
+       (2, 'deltajed', 'fernando'),
+       (3, 'fernando', 'mikeleil'),
+       (4, 'katherib', 'fernando'),
+       (5, 'katherib', 'mikeleil'),
+       (6, 'deltajed', 'katherib');
+
+
+
+-- Добавление значений в таблицу Recommendations
+INSERT INTO Recommendations (id, Peer, RecommendedPeer)
+VALUES (1, 'deltajed', 'mikeleil'),
+       (2, 'deltajed', 'fernando'),
+       (3, 'deltajed', 'katherib');
+
+-- Добавление значений в таблицу XP
+INSERT INTO XP (id, "Check", XPAmount)
+VALUES (1, 1, 250),
+       (2, 2, 500),
+       (3, 3, 279);
+
+-- Добавление значений в таблицу TimeTracking
+INSERT INTO TimeTracking (id, Peer, Date, Time, State)
+VALUES (1, 'deltajed', '2022-09-01', '12:00:00', 1),
+       (2, 'deltajed', '2022-09-01', '21:00:00', 2),
+       (3, 'fernando', '2022-12-11', '10:30:00', 1),
+       (4, 'fernando', '2022-12-11', '23:30:00', 2),
+       (5, 'mikeleil', '2022-11-11', '21:15:00', 1),
+       (6, 'mikeleil', '2022-11-12', '01:00:00', 2);
+
