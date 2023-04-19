@@ -292,7 +292,6 @@ VALUES (1, 'deltajed', 'mikeleil'),
        (6, 'deltajed', 'katherib');
 
 
-
 -- Добавление значений в таблицу Recommendations
 INSERT INTO Recommendations (id, Peer, RecommendedPeer)
 VALUES (1, 'deltajed', 'mikeleil'),
@@ -314,3 +313,39 @@ VALUES (1, 'deltajed', '2022-09-01', '12:00:00', 1),
        (5, 'mikeleil', '2022-11-11', '21:15:00', 1),
        (6, 'mikeleil', '2022-11-12', '01:00:00', 2);
 
+
+-- Создание процедуры для экпорта данных в файлы
+CREATE OR REPLACE PROCEDURE export_table_to_csv(
+    tablename VARCHAR(255),
+    file_path TEXT,
+    separator CHAR(1) DEFAULT ','
+)
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    sql_query TEXT;
+BEGIN
+    sql_query := FORMAT('COPY %I TO %L WITH (FORMAT CSV, HEADER, DELIMITER %L)', tablename, file_path, separator);
+    EXECUTE sql_query;
+    RAISE NOTICE 'Data exported to file: %', file_path;
+END;
+$$;
+
+-- Создание процедуры для импорта данных из файлов
+CREATE OR REPLACE PROCEDURE export_table_to_csv(
+    table_name TEXT,
+    file_path TEXT,
+    separator CHAR(1) DEFAULT ','
+)
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    sql_query TEXT;
+BEGIN
+    sql_query := FORMAT('\COPY %I TO %L WITH (FORMAT CSV, HEADER, DELIMITER %L)', table_name, file_path, separator);
+    EXECUTE sql_query;
+    RAISE NOTICE 'Data exported to file: %', file_path;
+END;
+$$ LANGUAGE plpgsql;
