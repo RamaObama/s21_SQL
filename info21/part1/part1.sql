@@ -316,7 +316,7 @@ VALUES (1, 'deltajed', '2022-09-01', '12:00:00', 1),
 
 -- Создание процедуры для экпорта данных в файлы
 CREATE OR REPLACE PROCEDURE export_table_to_csv(
-    tablename VARCHAR(255),
+    table_name VARCHAR(255),
     file_path TEXT,
     separator CHAR(1) DEFAULT ','
 )
@@ -326,14 +326,13 @@ $$
 DECLARE
     sql_query TEXT;
 BEGIN
-    sql_query := FORMAT('COPY %I TO %L WITH (FORMAT CSV, HEADER, DELIMITER %L)', tablename, file_path, separator);
+    sql_query := FORMAT('COPY %I TO %L WITH (FORMAT CSV, HEADER, DELIMITER %L)', table_name, file_path, separator);
     EXECUTE sql_query;
     RAISE NOTICE 'Data exported to file: %', file_path;
 END;
 $$;
 
--- Создание процедуры для импорта данных из файлов
-CREATE OR REPLACE PROCEDURE export_table_to_csv(
+CREATE OR REPLACE PROCEDURE import_table_from_csv(
     table_name TEXT,
     file_path TEXT,
     separator CHAR(1) DEFAULT ','
@@ -344,8 +343,8 @@ $$
 DECLARE
     sql_query TEXT;
 BEGIN
-    sql_query := FORMAT('\COPY %I TO %L WITH (FORMAT CSV, HEADER, DELIMITER %L)', table_name, file_path, separator);
+    sql_query := FORMAT('COPY %I FROM %L WITH (FORMAT CSV, HEADER, DELIMITER %L)', table_name, file_path, separator);
     EXECUTE sql_query;
-    RAISE NOTICE 'Data exported to file: %', file_path;
+    RAISE NOTICE 'Data imported from file: %', file_path;
 END;
-$$ LANGUAGE plpgsql;
+$$;
