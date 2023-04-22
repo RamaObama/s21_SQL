@@ -53,4 +53,65 @@ BEGIN
 END;
 $$;
 
+-- TODO: Добавить еще процедур, для проверки.
+-- Success
+CALL add_peer_review('deltajed', 'mikeleil', 'C6_s21_matrix', 'Start', '12:00:00');
+CALL add_peer_review('deltajed', 'mikeleil', 'C6_s21_matrix', 'Success', '13:00:00');
 
+-- Fail::Error
+-- CALL add_peer_review('deltajed', 'mikeleil', 'C6_s21_matrix', 'Start', '12:00:00');
+
+
+-- 2) Write a procedure for adding checking by Verter
+-- Parameters: nickname of the person being checked, task name, Verter check status, time.
+-- Add a record to the Verter table (as a check specify the check of the corresponding task with the latest (by time) successful P2P step)
+
+DROP PROCEDURE IF EXISTS add_verter_review CASCADE;
+
+CREATE OR REPLACE PROCEDURE add_verter_review(
+    IN nickname_check_peer VARCHAR,
+    IN task_name VARCHAR,
+    IN status check_status,
+    IN check_time TIME
+)
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF (status = 'Start') THEN
+        IF ((SELECT max(p2p.time)
+             FROM p2p
+                      JOIN checks ON p2p."Check" = checks.id
+             WHERE checks.peer = nickname_check_peer
+               AND checks.task = task_name
+               AND p2p.state = 'Success') IS NOT NULL) THEN
+            INSERT INTO verter
+            VALUES ((SELECT max(id) FROM verter) + 1,
+                    (SELECT DISTINCT checks.id
+                     FROM p2p
+                              JOIN checks ON p2p."Check" = checks.id
+                     WHERE checks.peer = nickname_check_peer
+                       AND checks.task = task_name
+                       AND p2p.state = 'Success'),
+                    status,
+                    check_time);
+        ELSE
+            RAISE EXCEPTION 'Error: P2P check for the task is not completed or has a `Failure` status';
+        END IF;
+    ELSE
+        INSERT INTO verter
+        VALUES ((SELECT max(id) FROM verter) + 1,
+                (SELECT "Check"
+                 FROM verter
+                 GROUP BY "Check"
+                 HAVING count(*) % 2 = 1), status, check_time);
+    END IF;
+END;
+$$;
+
+-- TODO: Добавить еще процедур, для проверки.
+-- Success
+CALL add_verter_review('deltajed', 'C6_s21_matrix', 'Start', '22:00:00');
+
+-- Fail::Error
+CALL add_verter_review('deltajed', 'CPP3_SmartCalc_v2.0', 'Start', '22:00:00');
