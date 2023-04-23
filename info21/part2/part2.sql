@@ -147,3 +147,62 @@ CREATE TRIGGER trg_transferredpoints
     ON p2p
     FOR EACH ROW
 EXECUTE FUNCTION fnc_trg_update_transferredpoints();
+
+-- TODO: Добавить еще вызово, для функции.
+
+-- fnc_trg_update_transferredpoints();
+
+-- 4) Write a trigger: before adding a record to the XP table, check if it is correct
+-- The record is considered correct if:
+--
+-- The number of XP does not exceed the maximum available for the task being checked
+-- The Check field refers to a successful check
+-- If the record does not pass the check, do not add it to the table.
+
+DROP FUNCTION IF EXISTS fnc_trg_check_correct_xp() CASCADE;
+
+CREATE OR REPLACE FUNCTION fnc_trg_check_correct_xp()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    IF ((SELECT maxxp
+         FROM checks
+                  JOIN tasks ON checks.task = tasks.title
+         WHERE new."Check" = checks.id) < new.xpamount) THEN
+        RAISE EXCEPTION 'Error: XP exceeds the maximum value.';
+    ELSEIF (SELECT state
+            FROM p2p
+            WHERE new."Check" = p2p."Check"
+              AND p2p.state IN ('Success', 'Failure')) = 'Failure' THEN
+        RAISE EXCEPTION 'Error: Failure check at the peer.';
+    ELSEIF (SELECT state
+            FROM verter
+            WHERE new."Check" = verter."Check"
+              AND verter.state = 'Failure') = 'Failure' THEN
+        RAISE EXCEPTION 'Error: Failure check at the Verter.';
+    END IF;
+    RETURN (new.id, new."Check", new.xpamount);
+END;
+$$
+    LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_correct_xp
+    BEFORE INSERT
+    ON xp
+    FOR EACH ROW
+EXECUTE FUNCTION fnc_trg_check_correct_xp();
+
+
+-- TODO: написать тесты для проверки.
+
+-- Success
+INSERT INTO XP VALUES (4, 4, 350);
+
+-- Error
+-- 1. XP exceeds the maximum value.
+INSERT INTO XP VALUES (5, 4, 1350);
+
+-- 2. Failure check at the peer.
+INSERT INTO XP VALUES (6, 25, 250);
+
+-- 3. Failure check at the Verter.
