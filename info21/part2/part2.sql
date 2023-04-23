@@ -115,3 +115,35 @@ CALL add_verter_review('deltajed', 'C6_s21_matrix', 'Start', '22:00:00');
 
 -- Fail::Error
 CALL add_verter_review('deltajed', 'CPP3_SmartCalc_v2.0', 'Start', '22:00:00');
+
+-- 3) Write a trigger: after adding a record with the "start" status to the P2P table, change the corresponding record in the TransferredPoints table
+
+DROP FUNCTION IF EXISTS fnc_trg_update_transferredpoints() CASCADE;
+
+CREATE OR REPLACE FUNCTION fnc_trg_update_transferredpoints() RETURNS TRIGGER AS
+$$
+BEGIN
+    IF (new.state = 'Start') THEN
+        WITH tmp AS (SELECT checks.peer AS peer
+                     FROM p2p
+                              JOIN checks ON p2p."Check" = checks.id
+                     WHERE state = 'Start'
+                       AND new."Check" = checks.id)
+        UPDATE transferredpoints
+        SET pointsamount = pointsamount + 1
+        FROM tmp
+        WHERE tmp.peer = transferredpoints.checkedpeer
+          AND new.checkingpeer = transferredpoints.checkingpeer;
+        --         WHERE transferredpoints.checkingpeer = new.checkingpeer
+--           AND transferredpoints.checkedpeer = tmp.peer;
+    END IF;
+    RETURN NULL;
+END;
+$$
+    LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_transferredpoints
+    AFTER INSERT
+    ON p2p
+    FOR EACH ROW
+EXECUTE FUNCTION fnc_trg_update_transferredpoints();
