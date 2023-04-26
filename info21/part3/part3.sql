@@ -78,3 +78,34 @@ $$
     LANGUAGE plpgsql;
 
 -- SELECT * FROM peers_not_left_campus('2022-09-01');
+
+-- 4) Calculate the change in the number of peer points of each peer using the TransferredPoints table
+-- Output the result sorted by the change in the number of points.
+-- Output format: peer's nickname, change in the number of peer points
+
+DROP PROCEDURE IF EXISTS prc_changes_peer_points(ref refcursor);
+
+CREATE OR REPLACE PROCEDURE prc_changes_peer_points(IN cursor refcursor) AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH sum_checking AS (SELECT checkingpeer,
+                                     ABS(SUM(pointsamount)) AS sum_points
+                              FROM transferredpoints
+                              GROUP BY checkingpeer),
+             sum_checked AS (SELECT checkedpeer,
+                                    ABS(SUM(pointsamount)) AS sum_points
+                             FROM transferredpoints
+                             GROUP BY checkedpeer)
+        SELECT checkingpeer                                                                     AS Peer,
+               ((COALESCE(sum_checking.sum_points, 0)) - (COALESCE(sum_checked.sum_points, 0))) AS PointsChange
+        FROM sum_checking
+                 JOIN sum_checked ON sum_checking.checkingpeer = sum_checked.checkedpeer
+        ORDER BY PointsChange DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- BEGIN;
+-- CALL prc_changes_peer_points('cursor');
+-- FETCH ALL IN "cursor";
+-- END;
