@@ -103,9 +103,40 @@ BEGIN
                  JOIN sum_checked ON sum_checking.checkingpeer = sum_checked.checkedpeer
         ORDER BY PointsChange DESC;
 END;
-$$ LANGUAGE plpgsql;
+$$
+    LANGUAGE plpgsql;
 
 -- BEGIN;
 -- CALL prc_changes_peer_points('cursor');
+-- FETCH ALL IN "cursor";
+-- END;
+
+-- 5) Calculate the change in the number of peer points of each peer using the table returned by the first function from Part 3
+-- Output the result sorted by the change in the number of points.
+-- Output format: peer's nickname, change in the number of peer points
+
+CREATE OR REPLACE PROCEDURE prc_changes_peer_points_v2(IN cursor refcursor) AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH peer1 AS (SELECT Peer1             AS Peer,
+                              SUM(pointsamount) AS PointsChange
+                       FROM human_readable_points()
+                       GROUP BY Peer1),
+             peer2 AS (SELECT Peer2             AS Peer,
+                              SUM(pointsamount) AS PointsChange
+                       FROM human_readable_points()
+                       GROUP BY Peer2)
+        SELECT COALESCE(peer1.Peer, peer2.Peer)                                    AS Peer,
+               (COALESCE(peer1.PointsChange, 0) - COALESCE(peer2.PointsChange, 0)) AS PointsChange
+        FROM peer1
+                 FULL JOIN peer2 ON peer1.Peer = peer2.Peer
+        ORDER BY PointsChange DESC;
+END;
+$$
+    LANGUAGE plpgsql;
+
+-- BEGIN;
+-- CALL prc_changes_peer_points_v2('cursor');
 -- FETCH ALL IN "cursor";
 -- END;
