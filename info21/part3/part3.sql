@@ -83,7 +83,7 @@ $$
 -- Output the result sorted by the change in the number of points.
 -- Output format: peer's nickname, change in the number of peer points
 
-DROP PROCEDURE IF EXISTS prc_changes_peer_points(ref refcursor);
+DROP PROCEDURE IF EXISTS prc_changes_peer_points(cursor refcursor);
 
 CREATE OR REPLACE PROCEDURE prc_changes_peer_points(IN cursor refcursor) AS
 $$
@@ -115,6 +115,8 @@ $$
 -- Output the result sorted by the change in the number of points.
 -- Output format: peer's nickname, change in the number of peer points
 
+DROP PROCEDURE IF EXISTS prc_changes_peer_points_v2(cursor refcursor);
+
 CREATE OR REPLACE PROCEDURE prc_changes_peer_points_v2(IN cursor refcursor) AS
 $$
 BEGIN
@@ -140,3 +142,34 @@ $$
 -- CALL prc_changes_peer_points_v2('cursor');
 -- FETCH ALL IN "cursor";
 -- END;
+
+-- 6) Find the most frequently checked task for each day
+-- If there is the same number of checks for some tasks in a certain day, output all of them.
+-- Output format: day, task name
+
+DROP PROCEDURE IF EXISTS most_frequently_checked_task(cursor refcursor);
+
+CREATE OR REPLACE PROCEDURE most_frequently_checked_task(cursor refcursor) AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH task1 AS (SELECT task,
+                              date,
+                              count(*) AS counts
+                       FROM checks
+                       GROUP BY task, date),
+             task2 AS (SELECT task1.task,
+                              task1.date,
+                              rank() OVER (PARTITION BY task1.date ORDER BY task1.counts) AS rank
+                       FROM task1)
+        SELECT task2.date, task2.task
+        FROM task2
+        WHERE rank = 1;
+END;
+$$  
+    LANGUAGE plpgsql;
+
+BEGIN;
+CALL most_frequently_checked_task('cursor');
+FETCH ALL IN "cursor";
+END;
