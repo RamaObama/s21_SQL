@@ -54,3 +54,27 @@ $$
 
 -- SELECT * FROM get_amount_xp_gained();
 
+-- 3) Write a function that finds the peers who have not left campus for the whole day
+-- Function parameters: day, for example 12.05.2022.
+-- The function returns only a list of peers.
+
+DROP FUNCTION IF EXISTS peers_not_left_campus(IN day date);
+
+CREATE OR REPLACE FUNCTION peers_not_left_campus(IN day date)
+    RETURNS TABLE
+            (
+                Peers VARCHAR
+            )
+AS
+$$
+BEGIN
+    RETURN QUERY (SELECT peer
+                  FROM timetracking t
+                  WHERE t.date = day
+                  GROUP BY peer
+                  HAVING count(state) < 3);
+END ;
+$$
+    LANGUAGE plpgsql;
+
+-- SELECT * FROM peers_not_left_campus('2022-09-01');
