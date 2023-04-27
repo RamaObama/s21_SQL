@@ -147,9 +147,9 @@ $$
 -- If there is the same number of checks for some tasks in a certain day, output all of them.
 -- Output format: day, task name
 
-DROP PROCEDURE IF EXISTS most_frequently_checked_task(cursor refcursor);
+DROP PROCEDURE IF EXISTS prc_most_frequently_checked_task(cursor refcursor);
 
-CREATE OR REPLACE PROCEDURE most_frequently_checked_task(cursor refcursor) AS
+CREATE OR REPLACE PROCEDURE prc_most_frequently_checked_task(cursor refcursor) AS
 $$
 BEGIN
     OPEN cursor FOR
@@ -166,10 +166,48 @@ BEGIN
         FROM task2
         WHERE rank = 1;
 END;
-$$  
+$$
+    LANGUAGE plpgsql;
+
+-- BEGIN;
+-- CALL prc_most_frequently_checked_task('cursor');
+-- FETCH ALL IN "cursor";
+-- END;
+
+-- 7) Find all peers who have completed the whole given block of tasks and the completion date of the last task
+-- Procedure parameters: name of the block, for example “CPP”.
+-- The result is sorted by the date of completion.
+-- Output format: peer's name, date of completion of the block (i.e. the last completed task from that block)
+
+DROP PROCEDURE IF EXISTS prc_peers_completed_task(block_task VARCHAR, cursor refcursor) CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_peers_completed_task(
+    IN block_task VARCHAR,
+    IN cursor refcursor) AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH task AS (SELECT *
+                      FROM tasks
+                      WHERE title SIMILAR TO concat(block_task, '[0-9]%')),
+             last AS (SELECT max(title) AS title
+                      FROM task),
+             success AS (SELECT c.peer,
+                                c.task,
+                                c.date
+                         FROM checks c
+                                  JOIN p2p ON c.id = p2p."Check"
+                         WHERE p2p.state = 'Success'
+                         GROUP BY c.id)
+        SELECT s.peer AS Peer,
+               s.date AS Day
+        FROM success s
+                 JOIN last l ON s.task = l.title;
+END;
+$$
     LANGUAGE plpgsql;
 
 BEGIN;
-CALL most_frequently_checked_task('cursor');
+CALL prc_peers_completed_task('C', 'cursor');
 FETCH ALL IN "cursor";
 END;
