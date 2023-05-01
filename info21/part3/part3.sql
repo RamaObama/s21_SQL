@@ -211,3 +211,43 @@ BEGIN;
 CALL prc_peers_completed_task('C', 'cursor');
 FETCH ALL IN "cursor";
 END;
+
+-- 8) Determine which peer each student should go to for a check.
+-- You should determine it according to the recommendations of the peer's friends, i.e. you need to find the peer with the greatest number of friends who recommend to be checked by him.
+-- Output format: peer's nickname, nickname of the checker found
+
+DROP PROCEDURE IF EXISTS prc_most_recommended_peer(cursor refcursor) CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_most_recommended_peer(IN cursor refcursor) AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH friend AS (SELECT nickname,
+                               (CASE WHEN nickname = f.peer1 THEN peer2 ELSE peer1 END) AS friends
+                        FROM peers
+                                 JOIN friends f ON peers.nickname = f.peer1
+                            AND peers.nickname = f.peer2),
+             recommend AS (SELECT nickname,
+                                  count(recommendedpeer) AS count,
+                                  recommendedpeer
+                           FROM friend f
+                                    JOIN recommendations r ON f.friends = r.peer
+                           WHERE f.nickname != r.recommendedpeer
+                           GROUP BY nickname, recommendedpeer),
+             max AS (SELECT nickname,
+                            max(count) AS max_count
+                     FROM recommend
+                     GROUP BY nickname)
+        SELECT r.nickname      AS Peer,
+               recommendedpeer AS RecommendedPeer
+        FROM recommend r
+                 JOIN max m ON r.nickname = m.nickname
+            AND r.count = max.max_count;
+END;
+$$
+    LANGUAGE plpgsql;
+
+-- BEGIN;
+-- CALL find_most_recommend_peer('cursor');
+-- FETCH ALL IN "cursor";
+-- END;
