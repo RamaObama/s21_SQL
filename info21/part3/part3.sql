@@ -207,10 +207,10 @@ END;
 $$
     LANGUAGE plpgsql;
 
-BEGIN;
-CALL prc_peers_completed_task('C', 'cursor');
-FETCH ALL IN "cursor";
-END;
+-- BEGIN;
+-- CALL prc_peers_completed_task('C', 'cursor');
+-- FETCH ALL IN "cursor";
+-- END;
 
 -- 8) Determine which peer each student should go to for a check.
 -- You should determine it according to the recommendations of the peer's friends, i.e. you need to find the peer with the greatest number of friends who recommend to be checked by him.
@@ -251,3 +251,81 @@ $$
 -- CALL find_most_recommend_peer('cursor');
 -- FETCH ALL IN "cursor";
 -- END;
+
+-- 9) Determine the percentage of peers who:
+--
+-- Started only block 1
+-- Started only block 2
+-- Started both
+-- Have not started any of them
+--
+-- A peer is considered to have started a block if he has at least one check of any task from this block (according to the Checks table)
+-- Procedure parameters: name of block 1, for example SQL, name of block 2, for example A.
+-- Output format: percentage of those who started only the first block, percentage of those who started only the second block, percentage of those who started both blocks, percentage of those who did not started any of them
+
+DROP PROCEDURE IF EXISTS prc_started_two_blocks CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_started_two_blocks(
+    IN block1 TEXT,
+    IN block2 TEXT,
+    OUT StartedBlock1 BIGINT,
+    OUT StartedBlock2 BIGINT,
+    OUT StartedBothBlocks BIGINT,
+    OUT DidntStartAnyBlock BIGINT) AS
+$$
+DECLARE
+    count_peers BIGINT := (SELECT count(p.nickname)
+                           FROM peers p);
+BEGIN
+    CREATE TABLE tmp
+    (
+        bl1   TEXT,
+        bl2   TEXT,
+        count BIGINT
+    );
+    INSERT INTO tmp VALUES (block1, block2, count_peers);
+
+    CREATE VIEW both_block AS
+    (
+    WITH started_bl1 AS (SELECT DISTINCT peer
+                         FROM checks c
+                         WHERE c.task SIMILAR TO concat((SELECT bl1 FROM tmp), '[0-9]%')),
+         started_bl2 AS (SELECT DISTINCT peer
+                         FROM checks c
+                         WHERE c.task SIMILAR TO concat((SELECT bl2 FROM tmp), '[0-9]%')),
+         only_bl1 AS (SELECT peer
+                      FROM started_bl1
+                      EXCEPT
+                      SELECT peer
+                      FROM started_bl2),
+         only_bl2 AS (SELECT peer
+                      FROM started_bl2
+                      EXCEPT
+                      SELECT peer
+                      FROM started_bl1),
+         start_both AS (SELECT peer
+                        FROM started_bl1
+                        INTERSECT
+                        SELECT peer
+                        FROM started_bl2),
+         no_start AS (SELECT count(nickname) AS peer_count
+                      FROM peers
+                               LEFT JOIN checks c ON peers.nickname = c.peer
+                      WHERE peer IS NULL)
+    SELECT (((SELECT count(*) FROM only_bl1) * 100) / (SELECT count FROM tmp))   AS q1,
+           (((SELECT count(*) FROM only_bl2) * 100) / (SELECT count FROM tmp))   AS q2,
+           (((SELECT count(*) FROM start_both) * 100) / (SELECT count FROM tmp)) AS q3,
+           (((SELECT peer_count FROM no_start) * 100) / (SELECT count FROM tmp)) AS q4);
+
+    StartedBlock1 = (SELECT q1 FROM both_block);
+    StartedBlock2 = (SELECT q2 FROM both_block);
+    StartedBothBlocks = (SELECT q3 FROM both_block);
+    DidntStartAnyBlock = (SELECT q4 FROM both_block);
+
+    DROP VIEW both_block CASCADE;
+    DROP TABLE tmp CASCADE;
+END;
+$$
+    LANGUAGE plpgsql;
+
+-- CALL prc_started_two_blocks('C', 'DO', NULL, NULL, NULL, NULL);
