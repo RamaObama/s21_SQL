@@ -527,3 +527,30 @@ $$
 -- CALL prc_peer_came_early('13:00:00'::time, 1);
 -- FETCH ALL FROM "cursor";
 -- END;
+
+-- 16) Determine the peers who left the campus more than M times during the last N days
+-- Procedure parameters: N number of days , M number of times .
+-- Output format: list of peers
+
+DROP PROCEDURE IF EXISTS prc_count_out_of_campus CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_count_out_of_campus(IN N int, IN M int, IN cursor refcursor default 'cursor') AS
+$$
+begin
+    OPEN cursor FOR
+        SELECT peer
+        FROM (SELECT *
+              FROM timetracking
+              WHERE state = 2
+                AND date >= (now() - (N - 1 || ' days')::INTERVAL)::DATE
+                AND date <= now()::DATE) AS q1
+        GROUP BY peer
+        HAVING count(state) >= M;
+END;
+$$
+    LANGUAGE plpgsql;
+
+-- BEGIN;
+-- CALL prc_count_out_of_campus(1000, 1);
+-- FETCH ALL FROM "cursor";
+-- END;
