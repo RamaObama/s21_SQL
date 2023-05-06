@@ -499,3 +499,31 @@ $$
 -- CALL prc_max_peer_xp();
 -- FETCH ALL IN "cursor";
 -- END;
+
+-- 15) Determine the peers that came before the given time at least N times during the whole time
+-- Procedure parameters: time, N number of times .
+-- Output format: list of peers
+
+DROP PROCEDURE IF EXISTS prc_peer_came_early CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_peer_came_early(checking TIME, N INT, cursor refcursor default 'cursor')
+AS
+$$
+BEGIN
+    OPEN cursor FOR
+        SELECT peer
+        FROM (SELECT peer,
+                     count(state) AS counts
+              FROM timetracking
+              WHERE state = 1
+                AND time < checking
+              GROUP BY peer) AS q1
+        WHERE counts >= N;
+END;
+$$
+    LANGUAGE plpgsql;
+
+-- BEGIN;
+-- CALL prc_peer_came_early('13:00:00'::time, 1);
+-- FETCH ALL FROM "cursor";
+-- END;
