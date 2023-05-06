@@ -408,3 +408,34 @@ $$
 -- CALL prc_successfully_task_1_2_not_3('C2_SimpleBashUtils', 'C4_s21_math', 'A4_Crypto');
 -- FETCH ALL FROM "cursor";
 -- END;
+
+-- 12) Using recursive common table expression, output the number of preceding tasks for each task
+-- I. e. How many tasks have to be done, based on entry conditions, to get access to the current one.
+-- Output format: task name, number of preceding tasks
+
+DROP PROCEDURE IF EXISTS prc_count_parent_tasks CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_count_parent_tasks(cursor refcursor default 'cursor')
+AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH RECURSIVE parent AS (SELECT (SELECT title
+                                          FROM tasks
+                                          WHERE parenttask IS NULL) AS Task,
+                                         0                          AS PrevCount
+                                  UNION ALL
+                                  SELECT t.title,
+                                         PrevCount + 1
+                                  FROM parent p
+                                           JOIN tasks t ON t."parenttask" = p.Task)
+        SELECT *
+        FROM parent;
+END;
+$$
+    LANGUAGE plpgsql;
+
+BEGIN;
+CALL prc_count_parent_tasks();
+FETCH ALL FROM "cursor";
+END;
