@@ -329,3 +329,43 @@ $$
     LANGUAGE plpgsql;
 
 -- CALL prc_started_two_blocks('C', 'DO', NULL, NULL, NULL, NULL);
+
+-- 10) Determine the percentage of peers who have ever successfully passed a check on their birthday
+-- Also determine the percentage of peers who have ever failed a check on their birthday.
+-- Output format: percentage  of peers who have ever successfully passed a check on their birthday, percentage of peers who have ever failed a check on their birthday
+
+DROP PROCEDURE IF EXISTS prc_successful_checks_of_birthday CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_successful_checks_of_birthday(cursor refcursor default 'cursor')
+AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH birthday AS (SELECT nickname,
+                                 coalesce(xp."Check", 0) AS status
+                          FROM (SELECT *
+                                FROM checks c
+                                         JOIN peers p ON p.nickname = c.peer
+                                WHERE (SELECT extract(DAY FROM birthday)) = (SELECT extract(DAY FROM date))
+                                  AND (SELECT extract(MONTH FROM birthday)) =
+                                      (SELECT extract(MONTH FROM date))) AS birt
+                                   LEFT JOIN xp ON xp."Check" = birt.id
+                          GROUP BY nickname, status)
+        SELECT round((SELECT count(DISTINCT b.nickname)
+                      FROM birthday b
+                      WHERE status > 0)::NUMERIC * 100 / count(peers.nickname)::NUMERIC) AS SuccessfulChecks,
+               round((SELECT count(DISTINCT b.nickname)
+                      FROM birthday b
+                      WHERE status = 0)::NUMERIC * 100 / count(peers.nickname)::NUMERIC) AS UnsuccessfulChecks
+        FROM peers;
+END
+$$
+    LANGUAGE plpgsql;
+
+BEGIN;
+CALL prc_successful_checks_of_birthday();
+FETCH ALL FROM "cursor";
+END;
+
+
+
