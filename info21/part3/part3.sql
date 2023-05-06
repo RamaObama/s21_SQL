@@ -435,7 +435,42 @@ END;
 $$
     LANGUAGE plpgsql;
 
-BEGIN;
-CALL prc_count_parent_tasks();
-FETCH ALL FROM "cursor";
+-- BEGIN;
+-- CALL prc_count_parent_tasks();
+-- FETCH ALL FROM "cursor";
+-- END;
+
+-- 13) Find "lucky" days for checks. A day is considered "lucky" if it has at least N consecutive successful checks
+-- Parameters of the procedure: the N number of consecutive successful checks .
+-- The time of the check is the start time of the P2P step.
+-- Successful consecutive checks are the checks with no unsuccessful checks in between.
+-- The amount of XP for each of these checks must be at least 80% of the maximum.
+-- Output format: list of days
+
+DROP PROCEDURE IF EXISTS prc_lucky_day CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_lucky_day(IN N INT, IN cursor refcursor default 'cursor') AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH lucky AS (SELECT *
+                       FROM checks c
+                                JOIN p2p p ON c.id = p."Check"
+                                LEFT JOIN verter v ON c.id = v."Check"
+                                JOIN tasks t ON c.task = t.title
+                                JOIN xp x ON c.id = x."Check"
+                       WHERE p.state = 'Success'
+                         AND (v.state = 'Success' OR v.state IS NULL))
+        SELECT date
+        FROM lucky l
+        WHERE l.xpamount >= l.maxxp * 0.8
+        GROUP BY date
+        HAVING COUNT(date) >= N;
 END;
+$$
+    LANGUAGE plpgsql;
+
+-- BEGIN;
+-- CALL prc_lucky_day(3);
+-- FETCH ALL IN "cursor";
+-- END;
