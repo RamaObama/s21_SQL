@@ -474,3 +474,28 @@ $$
 -- CALL prc_lucky_day(3);
 -- FETCH ALL IN "cursor";
 -- END;
+
+-- 14) Find the peer with the highest amount of XP
+-- Output format: peer's nickname, amount of XP
+
+DROP PROCEDURE IF EXISTS prc_max_peer_xp CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_max_peer_xp(IN cursor refcursor default 'cursor') AS
+$$
+BEGIN
+    OPEN cursor FOR
+        SELECT peer,
+               sum(xpamount) AS XP
+        FROM xp
+                 JOIN checks c ON xp."Check" = c.id
+        GROUP BY peer
+        ORDER BY XP DESC
+        LIMIT 1;
+END;
+$$
+    LANGUAGE plpgsql;
+
+-- BEGIN;
+-- CALL prc_max_peer_xp();
+-- FETCH ALL IN "cursor";
+-- END;
