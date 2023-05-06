@@ -334,9 +334,9 @@ $$
 -- Also determine the percentage of peers who have ever failed a check on their birthday.
 -- Output format: percentage  of peers who have ever successfully passed a check on their birthday, percentage of peers who have ever failed a check on their birthday
 
-DROP PROCEDURE IF EXISTS prc_successful_checks_of_birthday CASCADE;
+DROP PROCEDURE IF EXISTS prc_successfully_checks_of_birthday CASCADE;
 
-CREATE OR REPLACE PROCEDURE prc_successful_checks_of_birthday(cursor refcursor default 'cursor')
+CREATE OR REPLACE PROCEDURE prc_successfully_checks_of_birthday(cursor refcursor default 'cursor')
 AS
 $$
 BEGIN
@@ -358,14 +358,53 @@ BEGIN
                       FROM birthday b
                       WHERE status = 0)::NUMERIC * 100 / count(peers.nickname)::NUMERIC) AS UnsuccessfulChecks
         FROM peers;
-END
+END;
 $$
     LANGUAGE plpgsql;
 
-BEGIN;
-CALL prc_successful_checks_of_birthday();
-FETCH ALL FROM "cursor";
+-- BEGIN;
+-- CALL prc_successfully_checks_of_birthday();
+-- FETCH ALL FROM "cursor";
+-- END;
+
+-- 11) Determine all peers who did the given tasks 1 and 2, but did not do task 3
+-- Procedure parameters: names of tasks 1, 2 and 3.
+-- Output format: list of peers
+
+DROP PROCEDURE IF EXISTS prc_successfully_task_1_2_not_3 CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_successfully_task_1_2_not_3(task1 VARCHAR, task2 VARCHAR, task3 VARCHAR,
+                                                            cursor refcursor default 'cursor') AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH success AS (SELECT peer, count(peer)
+                         FROM (SELECT peer, task
+                               FROM ((SELECT *
+                                      FROM checks c
+                                               JOIN xp x ON c.id = x."Check"
+                                      WHERE task = task1)
+                                     UNION
+                                     (SELECT *
+                                      FROM checks c
+                                               JOIN xp x ON c.id = x."Check"
+                                      WHERE task = task2)) q1
+                               GROUP BY peer, task) q2
+                         GROUP BY peer
+                         HAVING count(peer) = 2)
+        SELECT peer
+        FROM success
+        EXCEPT
+        (SELECT s.peer
+         FROM success s
+                  JOIN checks c ON c.peer = s.peer
+                  JOIN xp x ON c.id = x."Check"
+         WHERE task = task3);
 END;
+$$
+    LANGUAGE plpgsql;
 
-
-
+-- BEGIN;
+-- CALL prc_successfully_task_1_2_not_3('C2_SimpleBashUtils', 'C4_s21_math', 'A4_Crypto');
+-- FETCH ALL FROM "cursor";
+-- END;
