@@ -87,7 +87,31 @@ $$
 -- 3) Create a stored procedure with output parameter, which destroys all SQL DML triggers in the current database.
 -- The output parameter returns the number of destroyed triggers.
 
+DROP PROCEDURE IF EXISTS prc_destroy_all_triggers CASCADE;
 
+CREATE OR REPLACE PROCEDURE prc_destroy_all_triggers(OUT count_destroy_triggers INT) AS
+$$
+DECLARE
+    trg_name   text;
+    table_name text;
+BEGIN
+    SELECT COUNT(DISTINCT trigger_name)
+    INTO count_destroy_triggers
+    FROM information_schema.triggers
+    WHERE trigger_schema = 'public';
+    FOR trg_name, table_name IN (SELECT DISTINCT trigger_name, event_object_table
+                                 FROM information_schema.triggers
+                                 WHERE trigger_schema = 'public')
+        LOOP
+            EXECUTE concat('DROP TRIGGER ', trg_name, ' ON ', table_name);
+        END LOOP;
+END;
+$$
+    LANGUAGE plpgsql;
+
+-- CALL prc_destroy_all_triggers(NULL);
+
+-- SELECT trigger_name FROM information_schema.triggers;
 
 -- 4) Create a stored procedure with an input parameter that outputs names and descriptions of object types
 -- (only stored procedures and scalar functions) that have a string specified by the procedure parameter.
@@ -109,7 +133,7 @@ END;
 $$
     LANGUAGE plpgsql;
 
-BEGIN;
-CALL prc_search_objects('peer');
-FETCH ALL IN "cursor";
-END;
+-- BEGIN;
+-- CALL prc_search_objects('peer');
+-- FETCH ALL IN "cursor";
+-- END;
