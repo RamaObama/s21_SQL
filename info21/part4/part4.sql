@@ -40,8 +40,7 @@ DROP PROCEDURE IF EXISTS prc_get_scalar_functions CASCADE;
 CREATE OR REPLACE PROCEDURE prc_get_scalar_functions(
     OUT num_functions INT,
     OUT function_list TEXT
-)
-    LANGUAGE plpgsql AS
+) AS
 $$
 DECLARE
     func_name   TEXT;
@@ -71,7 +70,8 @@ BEGIN
     -- Remove trailing comma and space from function list
     function_list := SUBSTRING(function_list, 1, LENGTH(function_list) - 2);
 END;
-$$;
+$$
+    LANGUAGE plpgsql;
 
 -- DO
 -- $$
@@ -83,3 +83,33 @@ $$;
 --         RAISE NOTICE 'Found % scalar functions: %', num_functions, function_list;
 --     END
 -- $$;
+
+-- 3) Create a stored procedure with output parameter, which destroys all SQL DML triggers in the current database.
+-- The output parameter returns the number of destroyed triggers.
+
+
+
+-- 4) Create a stored procedure with an input parameter that outputs names and descriptions of object types
+-- (only stored procedures and scalar functions) that have a string specified by the procedure parameter.
+
+DROP PROCEDURE IF EXISTS prc_search_objects CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_search_objects(
+    IN search_string text,
+    IN cursor refcursor default 'cursor') AS
+$$
+BEGIN
+    OPEN cursor FOR
+        SELECT routine_name AS object_name,
+               routine_type AS object_type
+        FROM information_schema.routines
+        WHERE specific_schema = 'public'
+          AND routine_definition LIKE concat('%', search_string, '%');
+END;
+$$
+    LANGUAGE plpgsql;
+
+BEGIN;
+CALL prc_search_objects('peer');
+FETCH ALL IN "cursor";
+END;
