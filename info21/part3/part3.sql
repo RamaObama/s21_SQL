@@ -554,3 +554,49 @@ $$
 -- CALL prc_count_out_of_campus(1000, 1);
 -- FETCH ALL FROM "cursor";
 -- END;
+
+-- 17) Determine for each month the percentage of early entries
+-- For each month, count how many times people born in that month came to campus during the whole time (we'll call this the total number of entries).
+-- For each month, count the number of times people born in that month have come to campus before 12:00 in all time (we'll call this the number of early entries).
+-- For each month, count the percentage of early entries to campus relative to the total number of entries.
+-- Output format: month, percentage of early entries
+
+DROP PROCEDURE IF EXISTS prc_early_entry CASCADE;
+
+CREATE OR REPLACE PROCEDURE prc_early_entry(cursor refcursor default 'cursor') AS
+$$
+BEGIN
+    OPEN cursor FOR
+        WITH list_month AS (SELECT generate_series('2023-01-01'::date, '2023-12-01'::date, '1 month') AS month),
+             general AS (SELECT date,
+                                time
+                         FROM timetracking t
+                                  JOIN peers p ON p.nickname = t.peer
+                         WHERE (SELECT extract(MONTH FROM birthday)) = (SELECT extract(MONTH FROM date))
+                           AND state = 1),
+             early AS (SELECT month,
+                              count(date) AS counts
+                       FROM list_month
+                                LEFT JOIN general ON extract(MONTH FROM date) = extract(MONTH FROM month)
+                       WHERE time < '12:00:00'::TIME
+                       GROUP BY month),
+             entries AS (SELECT month,
+                                count(date) AS counts
+                         FROM list_month
+                                  LEFT JOIN general ON extract(MONTH FROM date) = extract(MONTH FROM month)
+                         GROUP BY month
+                         ORDER BY 1)
+        SELECT TO_CHAR(entries.month, 'Month')                                                        AS Month,
+               CASE entries.counts
+                   WHEN 0 THEN 0
+                   ELSE round(coalesce(early.counts, 0)::NUMERIC / entries.counts::NUMERIC * 100) END AS EarlyEntries
+        FROM entries
+                 LEFT JOIN early ON entries.month = early.month;
+END;
+$$
+    LANGUAGE plpgsql;
+
+-- BEGIN;
+-- CALL prc_early_entry();
+-- FETCH ALL FROM "cursor";
+-- END;
